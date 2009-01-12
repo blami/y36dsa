@@ -1,0 +1,127 @@
+Zadání:
+
+Mějme dán jednosměrně zřetězený spojový seznam s nijak neomezeným počtem
+prvků, který je zakončen odkazem na některý z prvků tohoto seznamu (viz obrázek).
+Tímto zpětným odkazem, který může vést na zcela libovolný prvek (první, poslední,
+libovolný vnitřní ... ), vzniká cyklická struktura.
+
+- Vaším úkolem je ve formě slovního pseudokódu navrhnout algoritmus, který určí
+  celkový počet prvků (tj. délku) tohoto seznamu.
+
+- Váš algoritmus však může vedle samotného spojového seznamu použít jen
+  pomocné paměti konstantní velikosti.
+
+- K řešení připojte také co možno nejtěsnější odhad časové složitosti
+  navrženého algoritmu v závislosti na délce zadaného seznamu a případných jeho
+  dalších parametrech
+
+Řešení:
+
+(1)
+První řešení které mě napadlo bylo v rámci průchodu seznamem pro každý prvek
+(i) projít seznam od počátku po prvcích (j) o tolik kroků kolikátý je prvek a 
+zkusit jestli i==j (a bokem někde počítat a v této fázi počítání zastavit). To
+bude fungovat dobře, problém je, že tyto dva vnořené cykly mají časovou
+složitost O(n^2).
+
+(1.5)
+Když jsem se to snažil vylepšit napadlo mě obrátit seznam a pamatovat si původní
+počátek - když bych na něj přišel v průchodu, přestal bych počítat - tohle
+řešení je úplně jasně O(n), ale zase měníseznam což nikde není zakázáno, ale ani
+dovoleno, takže to jsem zahodil a uvádím to jen pro dokreslení cesty kterou jsem
+se vydal.
+
+(2)
+Řešením problému se zdá být algoritmus pro hledání cyklů pomocí rychlého
+iterátoru. Tento algoritmus prochází v jednom cyklu celý seznam s tím, že jeden
+iterátor skáče po dvou prvcích/krok (iterátor A) a druhý normálně po jednom
+(iterátorem je defakto pointer, který v každé iteraci ukazuje na další prvek
+seznamu). Když rychlý iterátor "předběhne" pomalý iterátor došlo ke skoku z
+posledního prvku na nějaký v seznamu, takže prostě přestanu počítat a vrátím
+počet. Časová náročnost je pak O(n) - to důležité = jeden cyklus.
+Tento algoritmus se jmenuje "Zajíc a želva" a je to jeden z obecnych algoritmu
+pro hledani smycek.
+
+Kód C:
+
+int
+pocet_prvku(prvek* hlava)
+{
+	// cornercase 0
+	if(!hlava)
+		return 0;
+
+	int pocet = 1; // hlava tam je
+	// nastavim oba iteratory na pocatek
+	prvek* pomaly_iter = hlava;
+	// druhy iterator je implementovan dvema ukazateli:
+	// kr:  1 2            1 2
+	//     [a|b]cd.. -> ab[c|d]
+	// ktere se s kazdym krokem posouvaji - zjistim tak jestli se kryje 2/1 a
+	// podle toho jednicku prictu nebo neprictu (k poctu)
+	prvek* rychly_iter1kr = hlava;
+	prvek* rychly_iter2kr = hlava;
+
+	while(
+		(pomaly_iter != NULL) && 
+		(rychly_iter1kr = rychly_iter2kr->next) &&
+		(rychly_iter2kr = rychly_iter1kr->next))
+	{
+
+		// timhle se fixuje cornercase 1 prvek
+		if(pomaly_iter == rychly_iter1kr)
+			return pocet;
+
+		if(pomaly_iter == rychly_iter2kr)
+			return pocet+1;
+
+		// pomaly posunu o 1 prvek
+		pomaly_iter = pomaly_iter->next;
+		pocet++;
+	}
+}
+
+/*
+// pomaly:      _
+// rychly1kr:   .
+// rychly2kr:   _
+
+schema pro 4 je
+pocet:   1       2       3
+         _        _        _
+pomaly:  1234 -> 1234 -> 1234
+          ._     _  .     ._
+rychle:  1234 -> 1234 -> 1234
+
+VYSLEDEK = 3 + 1 // protoze se kryje 2kr s pomaly prictu jednicku
+
+
+schema pro 3 je
+pocet:   1      2
+         _       _
+pomaly:  123 -> 123
+          ._    ._
+rychle:  123 -> 123
+
+VYSLEDEK = 2 + 1 // 2kr a pomaly
+
+
+schema pro 5 je
+pocet:   1        2        3        4
+         _         _         _         _
+pomaly:  12345 -> 12345 -> 12345 -> 12345
+          ._         ._    ._         ._
+rychle:  12345 -> 12345 -> 12345 -> 12345
+
+VYSLEDEK = 4 + 1 // 2kr a pomaly
+
+schema pro 1 je:
+
+pocet:   1
+         _
+pomaly:  1
+         .
+         _
+rychle:  1
+
+VYSLEDEK = 1 // 1kr a pomaly vrati 1 driv nez dojde na 2kr a pomaly ktera je tez splnena.
